@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leão de Judá - Controle Financeiro Pro v7.4</title>
+    <meta name="theme-color" content="#0d1117">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; padding: 15px; min-height: 100vh; }
+    .container { max-width: 500px; margin: 0 auto; }
+        h1 { text-align: center; margin: 10px 0 5px; color: #00ff88; font-size: 24px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .lema { text-align: center; font-size: 12px; color: #7d8590; margin-bottom: 15px; font-style: italic; }
+    .logo { font-size: 32px; }
+    .tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
+    .tab { flex: 1; min-width: 15%; padding: 8px 3px; background: #161b22; border: 1px solid #30363d; color: #7d8590; text-align: center; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; }
+    .tab.active { background: #00ff88; color: #000; border-color: #00ff88; }
+    .card { background: #161b22; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #30363d; }
+    .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .dash-item { background: #161b22; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #30363d; }
+    .dash-item h3 { font-size: 11px; color: #7d8590; margin-bottom: 5px; }
+    .dash-item p { font-size: 16px; font-weight: bold; }
+    .verde { color: #00ff88; }
+    .vermelho { color: #ff4444; }
+    .amarelo { color: #ffaa00; }
+    .azul { color: #00aaff; }
+    .roxo { color: #a855f7; }
+        input, select, button, textarea { width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #fff; font-size: 16px; }
+        button { background: #00ff88; color: #000; font-weight: bold; cursor: pointer; border: none; }
+        button:active { transform: scale(0.98); }
+    .btn-delete { background: #ff4444; color: #fff; width: auto; padding: 5px 10px; font-size: 12px; }
+    .btn-backup { font-size: 14px; padding: 10px; }
+    .btn-small { padding: 8px; font-size: 14px; }
+    .btn-wts { background: #25D366; color: #000; }
+    .transacao { background: #0d1117; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    .transacao.ganho { border-left: 3px solid #00ff88; }
+    .transacao.gasto { border-left: 3px solid #ff4444; }
+    .transacao.divida { border-left: 3px solid #ffaa00; }
+    .hidden { display: none; }
+        canvas { max-height: 250px; }
+    .campo-parcela,.campo-recorrente { display: none; }
+    .filtro-mes { display: flex; gap: 10px; margin-bottom: 15px; }
+      #lista-conta li { background: #0d1117; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #30363d; }
+    .item-topo { display: flex; justify-content: space-between; align-items: center; }
+    .item-acoes { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+    .conta-saldo { font-size: 13px; color: #7d8590; margin-top: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="logo">🦁</span> Leão de Judá Pro v7.4</h1>
+        <p class="lema">"Tesouro precioso há na casa do sábio" - Provérbios 21:20</p>
+
+        <div class="filtro-mes">
+            <input type="month" id="filtroMes" style="margin: 0;">
+            <button id="btn-filtrar" class="btn-small" style="width: auto; margin: 0;">Filtrar</button>
+            <button id="btn-limpar-filtro" class="btn-small" style="width: auto; margin: 0; background: #30363d;">Tudo</button>
+        </div>
+
+        <div class="dashboard">
+            <div class="dash-item"><h3>ENTRADAS</h3><p class="verde" id="totalGanhos">R$ 0,00</p></div>
+            <div class="dash-item"><h3>SAÍDAS</h3><p class="vermelho" id="totalGastos">R$ 0,00</p></div>
+            <div class="dash-item"><h3>SOBRA DO MÊS</h3><p class="azul" id="sobraMes">R$ 0,00</p></div>
+            <div class="dash-item"><h3>DÍVIDAS</h3><p class="amarelo" id="totalDividas">R$ 0,00</p></div>
+            <div class="dash-item"><h3>INVESTIDO</h3><p class="roxo" id="totalInvestido">R$ 0,00</p></div>
+            <div class="dash-item"><h3>PATRIMÔNIO</h3><p id="saldo">R$ 0,00</p></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="lancamento">Lançar</div>
+            <div class="tab" data-tab="contas">Contas</div>
+            <div class="tab" data-tab="investir">Investir</div>
+            <div class="tab" data-tab="historico">Histórico</div>
+            <div class="tab" data-tab="grafico">Gráfico</div>
+        </div>
+
+        <div id="aba-lancamento" class="card">
+            <h3>Novo Lançamento</h3>
+            <select id="conta"></select>
+            <select id="tipo">
+                <option value="ganho">💰 Ganho / Entrada</option>
+                <option value="gasto">💸 Gasto / Saída</option>
+                <option value="divida">⚠️ Dívida</option>
+                <option value="transferencia">🔄 Transferência</option>
+            </select>
+            <input type="text" id="descricao" placeholder="Descrição: Salário, Aluguel...">
+            <input type="text" id="valor" placeholder="Valor - Ex: 4750.00">
+            <select id="categoria">
+                <option value="Salário">💼 Salário</option>
+                <option value="Renda Extra">💵 Renda Extra</option>
+                <option value="Mercado">🛒 Mercado</option>
+                <option value="Contas">📄 Contas Fixas</option>
+                <option value="Moradia">🏠 Moradia/Aluguel</option>
+                <option value="Transporte">⛽ Transporte</option>
+                <option value="Saúde">❤️ Saúde</option>
+                <option value="Lazer">🎮 Lazer</option>
+                <option value="Dízimo">🙏 Dízimo</option>
+                <option value="Outros">📦 Outros</option>
+            </select>
+            <div id="campoParcela" class="campo-parcela">
+                <input type="number" id="parcelas" placeholder="Nº de Parcelas" min="1" value="1">
+                <input type="number" id="juros" placeholder="Juros % ao mês (opcional)" step="0.01">
+            </div>
+            <input type="date" id="data">
+            <button id="btn-adicionar">Adicionar Lançamento</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                <button id="btn-exportar" class="btn-backup" style="background: #00aaff;">📤 Exportar</button>
+                <button id="btn-importar" class="btn-backup" style="background: #ffaa00; color: #000;">📥 Importar</button>
+                <button id="btn-pdf" class="btn-backup" style="background: #ff4444;">📄 PDF</button>
+                <button id="btn-wts" class="btn-backup btn-wts">📱 WhatsApp</button>
+            </div>
+        </div>
+
+        <div id="aba-contas" class="card hidden">
+            <h3>Minhas Contas</h3>
+            <input type="text" id="nome-conta" placeholder="Nome: Nubank, Carteira, Poupança">
+            <input type="text" id="saldo-inicial" placeholder="Saldo Inicial - Ex: 1000.00">
+            <button id="btn-adicionar-conta">Criar Conta</button>
+            <h3 style="margin-top:20px;">Saldos</h3>
+            <ul id="lista-conta"></ul>
+        </div>
+
+        <div id="aba-investir" class="card hidden">
+            <h3>Novo Aporte / Rendimento</h3>
+            <select id="conta-invest"></select>
+            <select id="tipo-invest">
+                <option value="aporte">📈 Novo Aporte</option>
+                <option value="rendimento">💎 Rendimento</option>
+            </select>
+            <input type="text" id="desc-invest" placeholder="Onde: Tesouro, CDB, Bitcoin...">
+            <input type="text" id="valor-invest" placeholder="Valor - Ex: 500.00">
+            <input type="date" id="data-invest">
+            <button id="btn-adicionar-invest">Adicionar</button>
+            <h3 style="margin-top:20px;">Carteira de Investimentos</h3>
+            <ul id="lista-invest"></ul>
+        </div>
+
+        <div id="aba-historico" class="card hidden">
+            <h3>Histórico Completo</h3>
+            <div id="lista-transacoes"></div>
+        </div>
+
+        <div id="aba-grafico" class="card hidden">
+            <h3>Gastos por Categoria</h3>
+            <canvas id="grafico-cat"></canvas>
+            <h3 style="margin-top:20px;">Resumo Geral</h3>
+            <canvas id="grafico-geral"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let dados = JSON.parse(localStorage.getItem('leaoFinancas')) || [];
+        let investimentos = JSON.parse(localStorage.getItem('leaoInvest')) || [];
+        let contas = JSON.parse(localStorage.getItem('leaoContas')) || [{ nome: 'carteira', saldoInicial: 0, saldo: 0, id: 1 }];
+        let graficoCat = null, graficoGeral = null;
+
+        const hoje = new Date().toISOString().split('T')[0];
+        const mesAtual = hoje.substring(0, 7);
+        document.getElementById('data').value = hoje;
+        document.getElementById('data-invest').value = hoje;
+        document.getElementById('filtroMes').value = mesAtual;
+
+        function salvar() {
+            localStorage.setItem('leaoFinancas', JSON.stringify(dados));
+            localStorage.setItem('leaoInvest', JSON.stringify(investimentos));
+            localStorage.setItem('leaoContas', JSON.stringify(contas));
+        }
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function toggleParcela() {
+            const tipo = document.getElementById('tipo').value;
+            document.getElementById('campoParcela').style.display = tipo === 'divida'? 'block' : 'none';
+        }
+
+        function calcularJuros(valor, jurosMes, parcelas) {
+            if (!jurosMes || jurosMes <= 0 || parcelas <= 1) return { total: valor, parcela: valor / parcelas, jurosTotal: 0 };
+            const i = jurosMes / 100;
+            const parcela = valor * (i * Math.pow(1 + i, parcelas)) / (Math.pow(1 + i, parcelas) - 1);
+            const total = parcela * parcelas;
+            return { total, parcela, jurosTotal: total - valor };
+        }
+
+        function atualizarSaldos() {
+            contas.forEach(c => c.saldo = c.saldoInicial || 0);
+            dados.forEach(item => {
+                const conta = contas.find(c => c.nome === item.conta);
+                if (!conta) return;
+                if (item.tipo === 'ganho') conta.saldo += item.valor;
+                if (item.tipo === 'gasto') conta.saldo -= item.valor;
+                if (item.tipo === 'divida') conta.saldo -= item.valorParcela * (item.parcelasPagas || 0);
+            });
+            investimentos.forEach(inv => {
+                const conta = contas.find(c => c.nome === inv.conta);
+                if (!conta) return;
+                if (inv.tipo === 'aporte') conta.saldo -= inv.valor;
+                if (inv.tipo === 'rendimento') conta.saldo += inv.valor;
+            });
+
+            let mesFiltro = document.getElementById('filtroMes').value || mesAtual;
+            const dadosMes = dados.filter(item => item.data && item.data.startsWith(mesFiltro));
+            let totalGanhos = 0, totalGastos = 0, totalDividas = 0;
+            dadosMes.forEach(item => {
+                if (item.tipo === 'ganho') totalGanhos += item.valor;
+                if (item.tipo === 'gasto') totalGastos += item.valor;
+                if (item.tipo === 'divida') totalDividas += item.valor;
+            });
+
+            const totalInvestido = investimentos.reduce((acc, inv) => acc + (inv.tipo === 'aporte'? inv.valor : 0), 0);
+            const rendimentos = investimentos.reduce((acc, inv) => acc + (inv.tipo === 'rendimento'? inv.valor : 0), 0);
+            const patrimonioLiquido = contas.reduce((acc, c) => acc + c.saldo, 0) + totalInvestido + rendimentos - totalDividas;
+
+            document.getElementById('totalGanhos').textContent = `R$ ${formatarMoeda(totalGanhos)}`;
+            document.getElementById('totalGastos').textContent = `R$ ${formatarMoeda(totalGastos)}`;
+            document.getElementById('sobraMes').textContent = `R$ ${formatarMoeda(totalGanhos - totalGastos)}`;
+            document.getElementById('totalDividas').textContent = `R$ ${formatarMoeda(totalDividas)}`;
+            document.getElementById('totalInvestido').textContent = `R$ ${formatarMoeda(totalInvestido + rendimentos)}`;
+            document.getElementById('saldo').textContent = `R$ ${formatarMoeda(patrimonioLiquido)}`;
+            document.getElementById('saldo').style.color = patrimonioLiquido >= 0? '#00ff88' : '#ff4444';
+        }
+
+        function atualizarSelectsContas() {
+            const selects = [document.getElementById('conta'), document.getElementById('conta-invest')];
+            selects.forEach(sel => {
+                if (!sel) return;
+                const valorAtual = sel.value;
+                sel.innerHTML = '';
+                contas.forEach(c => {
+                    sel.innerHTML += `<option value="${c.nome}">💵 ${c.nome.charAt(0).toUpperCase() + c.nome.slice(1)}</option>`;
+                });
+                if (contas.find(c => c.nome === valorAtual)) sel.value = valorAtual;
+            });
+        }
+
+        function adicionar() {
+            const conta = document.getElementById('conta').value;
+            const tipo = document.getElementById('tipo').value;
+            const descricao = document.getElementById('descricao').value.trim();
+            const valorTexto = document.getElementById('valor').value.replace(/\./g, '').replace(',', '.');
+            const valor = parseFloat(valorTexto);
+            const data = document.getElementById('data').value;
+            const categoria = document.getElementById('categoria').value;
+            const parcelas = tipo === 'divida'? parseInt(document.getElementById('parcelas').value) || 1 : 1;
+            const juros = tipo === 'divida'? parseFloat(document.getElementById('juros').value) || 0 : 0;
+
+            if (!contas.length) return alert('Erro: Nenhuma conta criada! Vai na aba Contas e cria uma primeiro.');
+            if (!conta) return alert('Seleciona uma conta, sargento!');
+            if (!descricao) return alert('Preenche a descrição, sargento!');
+            if (!valor || isNaN(valor) || valor <= 0) return alert('Preenche o valor certo! Ex: 4750.00');
+            if (!data) return alert('Seleciona a data, sargento!');
+
+            const calc = calcularJuros(valor, juros, parcelas);
+            const idNovo = Date.now();
+
+            if (tipo === 'transferencia') {
+                const contaDestino = prompt('Transferir para qual conta? Digite o nome exato:');
+                if (!contaDestino) return;
+                const contaDest = contaDestino.toLowerCase().trim();
+                if (!contas.find(c => c.nome === contaDest)) return alert('Conta destino não existe! Cria ela na aba Contas primeiro.');
+                if (contaDest === conta) return alert('Não pode transferir pra mesma conta!');
+                dados.push({ tipo: 'gasto', descricao: `Transferência para ${contaDest}: ${descricao}`, valor, data, categoria: 'Transferência', conta, id: idNovo });
+                dados.push({ tipo: 'ganho', descricao: `Transferência de ${conta}: ${descricao}`, valor, data, categoria: 'Transferência', conta: contaDest, id: idNovo + 1 });
+            } else {
+                dados.push({ tipo, descricao, valor: tipo === 'divida'? calc.total : valor, data, categoria, conta, id: idNovo, parcelas, parcelasPagas: 0, valorParcela: calc.parcela, valorOriginal: valor, juros: juros, jurosTotal: calc.jurosTotal });
+            }
+
+            salvar();
+            atualizarSaldos();
+            renderizarContas();
+            renderizar();
+            atualizarGraficos();
+            document.getElementById('descricao').value = '';
+            document.getElementById('valor').value = '';
+            document.getElementById('parcelas').value = '1';
+            document.getElementById('juros').value = '';
+            alert('Lançamento adicionado! 🦁');
+        }
+
+        function renderizar() {
+            const lista = document.getElementById('lista-transacoes');
+            const filtroMes = document.getElementById('filtroMes').value || mesAtual;
+            if (!lista) return;
+            lista.innerHTML = '';
+            let dadosFiltrados = dados.filter(item => item.data.startsWith(filtroMes));
+            dadosFiltrados.sort((a, b) => new Date(b.data) - new Date(a.data));
+            if (dadosFiltrados.length === 0) {
+                lista.innerHTML = '<p style="text-align:center; color:#666;">Nenhum lançamento nesse período 🦁</p>';
+                return;
+            }
+            dadosFiltrados.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `transacao ${item.tipo}`;
+                div.innerHTML = `<div><strong>${item.descricao}</strong><br><small>${item.categoria} | ${item.conta} | ${new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR')}</small></div><div style="text-align:right;"><strong style="color:${item.tipo === 'ganho'? '#00ff88' : item.tipo === 'gasto'? '#ff4444' : '#ffaa00'}">${item.tipo === 'ganho'? '+' : '-'} R$ ${formatarMoeda(item.valor)}</strong><br><button onclick="deletar(${item.id})" style="background:#ff4444;color:white;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;margin-top:5px;">X</button></div>`;
+                lista.appendChild(div);
+            });
+        }
+
+        function renderizarContas() {
+            atualizarSelectsContas();
+            const listaContas = document.getElementById('lista-conta');
+            if (!listaContas) return;
+            listaContas.innerHTML = '';
+            contas.forEach(c => {
+                const li = document.createElement('li');
+                li.innerHTML = `<div class="item-topo"><strong>💵 ${c.nome.charAt(0).toUpperCase() + c.nome.slice(1)}</strong><strong style="color:${c.saldo >= 0? '#00ff88' : '#ff4444'}">R$ ${formatarMoeda(c.saldo)}</strong></div><div class="conta-saldo">Saldo inicial: R$ ${formatarMoeda(c.saldoInicial)}</div><div class="item-acoes"><button class="btn-delete" onclick="removerConta(${c.id})">Excluir</button></div>`;
+                listaContas.appendChild(li);
+            });
+        }
+
+        function deletar(id) {
+            if (!confirm('Confirma excluir esse lançamento?')) return;
+            dados = dados.filter(item => item.id!== id);
+            salvar();
+            atualizarSaldos();
+            renderizar();
+            atualizarGraficos();
+        }
+
+        function removerConta(id) {
+            if (contas.length === 1) return alert('Não pode excluir a última conta!');
+            if (!confirm('Excluir conta? Os lançamentos vinculados vão ficar sem conta!')) return;
+            contas = contas.filter(c => c.id!== id);
+            salvar();
+            atualizarSaldos();
+            renderizarContas();
+        }
+
+        function adicionarConta() {
+            const nome = document.getElementById('nome-conta').value.trim().toLowerCase();
+            const saldoTexto = document.getElementById('saldo-inicial').value.replace(/\./g, '').replace(',', '.');
+            const saldoInicial = parseFloat(saldoTexto) || 0;
+            if (!nome) return alert('Digite o nome da conta!');
+            if (contas.find(c => c.nome === nome)) return alert('Já existe uma conta com esse nome!');
+            contas.push({ nome, saldoInicial, saldo: saldoInicial, id: Date.now() });
+            salvar();
+            atualizarSaldos();
+            renderizarContas();
+            document.getElementById('nome-conta').value = '';
+            document.getElementById('saldo-inicial').value = '';
+            alert('Conta criada! 🦁');
+        }
+
+        function adicionarInvest() {
+            const conta = document.getElementById('conta-invest').value;
+            const tipo = document.getElementById('tipo-invest').value;
+            const descricao = document.getElementById('desc-invest').value.trim();
+            const valorTexto = document.getElementById('valor-invest').value.replace(/\./g, '').replace(',', '.');
+            const valor = parseFloat(valorTexto);
+            const data = document.getElementById('data-invest').value;
+            if (!conta) return alert('Seleciona uma conta!');
+            if (!descricao) return alert('Preenche onde investiu!');
+            if (!valor || isNaN(valor) || valor <= 0) return alert('Preenche o valor certo!');
+            if (!data) return alert('Seleciona a data!');
+            investimentos.push({ tipo, descricao, valor, data, conta, id: Date.now() });
+            salvar();
+            atualizarSaldos();
+            renderizarInvest();
+            document.getElementById('desc-invest').value = '';
+            document.getElementById('valor-invest').value = '';
+            alert('Investimento adicionado! 🦁');
+        }
+
+        function renderizarInvest() {
+            const lista = document.getElementById('lista-invest');
+            if (!lista) return;
+            lista.innerHTML = '';
+            investimentos.sort((a, b) => new Date(b.data) - new Date(a.data));
+            investimentos.forEach(inv => {
+                const li = document.createElement('li');
+                li.innerHTML = `<div class="item-topo"><strong>${inv.tipo === 'aporte'? '📈' : '💎'} ${inv.descricao}</strong><strong style="color:${inv.tipo === 'aporte'? '#a855f7' : '#00ff88'}">R$ ${formatarMoeda(inv.valor)}</strong></div><div class="cat-info">${inv.conta} | ${new Date(inv.data + 'T00:00:00').toLocaleDateString('pt-BR')}</div><div class="item-acoes"><button class="btn-delete" onclick="deletarInvest(${inv.id})">X</button></div>`;
+                lista.appendChild(li);
+            });
+        }
+
+        function deletarInvest(id) {
+            if (!confirm('Confirma excluir?')) return;
+            investimentos = investimentos.filter(inv => inv.id!== id);
+            salvar();
+            atualizarSaldos();
+            renderizarInvest();
+        }
+
+        function atualizarGraficos() {
+            const filtroMes = document.getElementById('filtroMes').value || mesAtual;
+            const dadosMes = dados.filter(item => item.data.startsWith(filtroMes));
+            const gastosPorCat = {};
+            dadosMes.filter(item => item.tipo === 'gasto').forEach(item => {
+                gastosPorCat[item.categoria] = (gastosPorCat[item.categoria] || 0) + item.valor;
+            });
+
+            if (graficoCat) graficoCat.destroy();
+            const ctxCat = document.getElementById('grafico-cat').getContext('2d');
+            graficoCat = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: { labels: Object.keys(gastosPorCat), datasets: [{ data: Object.values(gastosPorCat), backgroundColor: ['#ff4444', '#ffaa00', '#00aaff', '#a855f7', '#00ff88', '#ff88ff'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const totalGanhos = dadosMes.filter(i => i.tipo === 'ganho').reduce((a, i) => a + i.valor, 0);
+            const totalGastos = dadosMes.filter(i => i.tipo === 'gasto').reduce((a, i) => a + i.valor, 0);
+            const totalDividas = dadosMes.filter(i => i.tipo === 'divida').reduce((a, i) => a + i.valor, 0);
+
+            if (graficoGeral) graficoGeral.destroy();
+            const ctxGeral = document.getElementById('grafico-geral').getContext('2d');
+            graficoGeral = new Chart(ctxGeral, {
+                type: 'bar',
+                data: { labels: ['Ganhos', 'Gastos', 'Dívidas'], datasets: [{ data: [totalGanhos, totalGastos, totalDividas], backgroundColor: ['#00ff88', '#ff4444', '#ffaa00'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function trocarAba(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`aba-${tab}`).classList.remove('hidden');
+            if (tab === 'grafico') atualizarGraficos();
+            if (tab === 'historico') renderizar();
+        }
+
+        function exportar() {
+            const dataStr = JSON.stringify({ dados, investimentos, contas }, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `leao-backup-${hoje}.json`;
+            a.click();
+        }
+
+        function importar() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const backup = JSON.parse(event.target.result);
+                        if (!backup.dados &&!backup.contas) return alert('Arquivo inválido, Sargento!');
+                        if (confirm('Isso vai substituir TODOS os dados atuais. Confirma?')) {
+                            dados = backup.dados || [];
+                            investimentos = backup.investimentos || [];
+                            contas = backup.contas || [{ nome: 'carteira', saldoInicial: 0, saldo: 0, id: 1 }];
+                            salvar();
+                            atualizarSaldos();
+                            renderizarContas();
+                            renderizar();
+                            renderizarInvest();
+                            atualizarGraficos();
+                            alert('Backup importado! 🦁');
+                        }
+                    } catch (err) {
+                        alert('Arquivo corrompido, Sargento!');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function gerarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text('Leão de Judá - Relatório Financeiro', 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+            let y = 40;
+            dados.slice(0, 30).forEach(item => {
+                if (y > 270) { doc.addPage(); y = 20; }
+                doc.text(`${item.data} - ${item.descricao} - R$ ${formatarMoeda(item.valor)} - ${item.tipo}`, 14, y);
+                y += 7;
+            });
+            doc.save('leao-relatorio.pdf');
+        }
+
+        function enviarWts() {
+            const totalGanhos = document.getElementById('totalGanhos').textContent;
+            const totalGastos = document.getElementById('totalGastos').textContent;
+            const saldo = document.getElementById('saldo').textContent;
+            const texto = `🦁 *Leão de Judá - Resumo*%0A%0A💰 Entradas: ${totalGanhos}%0A💸 Saídas: ${totalGastos}%0A🏦 Patrimônio: ${saldo}%0A%0A_Relatório gerado pelo Leão de Judá Pro_`;
+            window.open(`https://wa.me/?text=${texto}`, '_blank');
+        }
+
+        // EVENT LISTENERS
+        document.getElementById('btn-adicionar').addEventListener('click', adicionar);
+        document.getElementById('btn-adicionar-conta').addEventListener('click', adicionarConta);
+        document.getElementById('btn-adicionar-invest').addEventListener('click', adicionarInvest);
+        document.getElementById('btn-exportar').addEventListener('click', exportar);
+        document.getElementById('btn-importar').addEventListener('click', importar);
+        document.getElementById('btn-pdf').addEventListener('click', gerarPDF);
+        document.getElementById('btn-wts').addEventListener('click', enviarWts);
+        document.getElementById('tipo').addEventListener('change', toggleParcela);
+        document.getElementById('btn-filtrar').addEventListener('click', () => { atualizarSaldos(); renderizar(); atualizarGraficos(); });
+        document.getElementById('btn-limpar-filtro').addEventListener('click', () => { document.getElementById('filtroMes').value = ''; atualizarSaldos(); renderizar(); atualizarGraficos(); });
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => trocarAba(tab.dataset.tab));
+        });
+
+        // INICIAR
+        atualizarSelectsContas();
+        atualizarSaldos();
+        renderizarContas();
+        renderizar();
+        renderizarInvest();
+        toggleParcela();
+    </script>
+</body>
+</html>
